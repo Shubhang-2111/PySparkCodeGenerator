@@ -5,6 +5,8 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
+# Set your Groq API key
+os.environ["GROQ_API_KEY"] = "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"
 
 # Load environment variables
 load_dotenv()
