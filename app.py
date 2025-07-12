@@ -1,29 +1,18 @@
 import os
 import json
+import streamlit as st
 from langchain.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_groq import ChatGroq
 from dotenv import load_dotenv
 
-# Set your Groq API key
-os.environ["GROQ_API_KEY"] = "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"
-
 # Load environment variables
 load_dotenv()
 
+# Set your Groq API key
+os.environ["GROQ_API_KEY"] = os.getenv("GROQ_API_KEY") or "your_groq_key_here"
 
-# Sample JSON data
-sample_json = {
-    "employees": [
-        {"id": 1, "name": "Alice", "department": "Sales", "salary": 50000},
-        {"id": 2, "name": "Bob", "department": "Engineering", "salary": 70000}
-    ]
-}
-
-# Business logic to apply
-business_logic = "Flag Employees Who Earn Below Department Average Salary"
-
-# Prompt template
+# LangChain prompt template
 template = """
 You are a senior PySpark developer.
 
@@ -35,28 +24,37 @@ And the following business logic:
 
 Generate only the PySpark code that implements the logic. Do not include any explanation, comments, or extra text. Return only the code.
 """
-
-
-# Format the prompt
 prompt = ChatPromptTemplate.from_template(template)
 
-# Initialize Groq + DeepSeek LLM
+# Initialize LLM
 llm = ChatGroq(
     model_name="meta-llama/llama-4-scout-17b-16e-instruct",
     temperature=0.2,
 )
-
-# Set up output parser
 parser = StrOutputParser()
-
-# Chain the steps: prompt → LLM → output parser
 chain = prompt | llm | parser
 
-# Invoke the chain
-response = chain.invoke({
-    "json_data": json.dumps(sample_json, indent=2),
-    "logic": business_logic
-})
+# Streamlit UI
+st.set_page_config(page_title="PySpark Code Generator", layout="centered")
+st.title("🧠 PySpark Code Generator from JSON + Business Logic")
 
-print("Generated PySpark Code:\n")
-print(response)
+uploaded_file = st.file_uploader("Upload JSON file", type=["json"])
+business_logic = st.text_area("Enter Business Logic", height=100)
+
+if uploaded_file and business_logic:
+    try:
+        json_data = json.load(uploaded_file)
+        st.subheader("📦 Uploaded JSON")
+        st.json(json_data)
+
+        with st.spinner("Generating PySpark code..."):
+            response = chain.invoke({
+                "json_data": json.dumps(json_data, indent=2),
+                "logic": business_logic
+            })
+
+        st.subheader("🧾 Generated PySpark Code")
+        st.code(response, language="python")
+
+    except Exception as e:
+        st.error(f"Error: {e}")
